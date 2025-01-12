@@ -1,50 +1,58 @@
 return {
-  "nvimdev/lspsaga.nvim",
-  event = { "BufReadPre", "BufNewFile" },
-  dependencies = {
-    "nvim-treesitter/nvim-treesitter",
-    "nvim-tree/nvim-web-devicons",
+  {
+    "neovim/nvim-lspconfig",
+    opts = {
+      inlay_hints = { enabled = false },
+    },
   },
-  opts = {
-    scroll_preview = {
-      scroll_down = "<C-h>",
-      scroll_up = "<C-l>",
+  {
+    "nvimdev/lspsaga.nvim",
+    event = { "BufReadPre", "BufNewFile" },
+    dependencies = {
+      "nvim-treesitter/nvim-treesitter",
+      "nvim-tree/nvim-web-devicons",
     },
-    finder = {
-      keys = {
-        edit = "<CR>",
+    opts = {
+      scroll_preview = {
+        scroll_down = "<C-h>",
+        scroll_up = "<C-l>",
       },
-    },
-    diagnostic = {
-      auto_preview = false,
-    },
-    definition = {
-      keys = {
-        edit = "<CR>",
+      finder = {
+        keys = {
+          edit = "<CR>",
+        },
       },
-    },
-    symbol_in_winbar = {
-      enable = false,
-      separator = "  ",
-      show_file = false,
-      folder_level = 1, -- 0: display folder | 1: only file
-    },
-    lightbulb = {
-      enable = false, -- enable by default
-      sign = false, -- display sign at the column when code actions are available
-    },
-    ui = {
-      theme = "round",
-      border = "rounded",
-      -- title = false, -- go definition, reference title
-      expand = "", -- shown in sagaoutline
-      collapse = "", -- shown in sagaoutline
-      code_action = "👾",
-      lines = { "└", "├", "│", "─", "┌" },
-      button = { "", "" },
-    },
-    outline = {
-      win_width = 35,
+      diagnostic = {
+        auto_preview = false,
+      },
+      definition = {
+        keys = {
+          edit = "<CR>",
+        },
+      },
+      symbol_in_winbar = {
+        enable = false,
+        separator = "  ",
+        show_file = false,
+        folder_level = 1, -- 0: display folder | 1: only file
+      },
+      lightbulb = {
+        enable = false, -- enable by default
+        sign = false, -- display sign at the column when code actions are available
+      },
+      ui = {
+        theme = "round",
+        border = "rounded",
+        -- title = false, -- go definition, reference title
+        expand = "", -- shown in sagaoutline
+        collapse = "", -- shown in sagaoutline
+        code_action = "👾",
+        lines = { "└", "├", "│", "─", "┌" },
+        button = { "", "" },
+      },
+      outline = {
+        win_width = 35,
+      },
     },
   },
 }

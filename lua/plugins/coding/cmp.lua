@@ -1,147 +1,164 @@
 return {
   {
-    "neovim/nvim-lspconfig",
-    opts = {
-      inlay_hints = { enabled = false },
-    },
-  },
-  {
     "hrsh7th/nvim-cmp",
-    -- version = false, -- last release is way too old
+    version = false,
     event = "InsertEnter",
     dependencies = {
-      "hrsh7th/cmp-nvim-lsp",
       "hrsh7th/cmp-buffer",
       "hrsh7th/cmp-path",
-      "hrsh7th/cmp-emoji",
-    },
-    -- Not all LSP servers add brackets when completing a function.
-    -- To better deal with this, LazyVim adds a custom option to cmp,
-    -- that you can configure. For example:
-    --
-    -- ```lua
-    -- opts = {
-    --   auto_brackets = { "python" }
-    -- }
-    -- ```
-    ---@param opts cmp.ConfigSchema
-    opts = function(_, opts)
-      vim.api.nvim_set_hl(0, "CmpGhostText", { link = "Comment", default = true })
-      table.insert(opts.sources, { name = "emoji" })
-      local cmp = require("cmp")
-      local defaults = require("cmp.config.default")()
-      return {
-        auto_brackets = {}, -- configure any filetype to auto add brackets
-        completion = {
-          completeopt = "menu,menuone,noinsert",
+      "f3fora/cmp-spell",
+      "saadparwaiz1/cmp_luasnip",
+      "onsails/lspkind.nvim",
+      "roobert/tailwindcss-colorizer-cmp.nvim",
+      {
+        "L3MON4D3/LuaSnip",
+        version = "v2.*",
+        build = "make install_jsregexp",
+        dependencies = {
+          "rafamadriz/friendly-snippets",
+          config = function()
+            require("luasnip.loaders.from_vscode").lazy_load()
+          end,
         },
-        mapping = cmp.mapping.preset.insert({
-          ["<C-n>"] = cmp.mapping.select_next_item({ behavior = cmp.SelectBehavior.Insert }),
-          ["<C-p>"] = cmp.mapping.select_prev_item({ behavior = cmp.SelectBehavior.Insert }),
-          ["<C-b>"] = cmp.mapping.scroll_docs(-4),
-          ["<C-f>"] = cmp.mapping.scroll_docs(4),
-          ["<C-Space>"] = cmp.mapping.complete({}),
-          ["<C-e>"] = cmp.mapping.complete({}),
+      },
+    },
 
-          -- ["<C-e>"] = cmp.mapping.abort(),
-          ["<CR>"] = cmp.mapping.confirm({ select = true }), -- Accept currently selected item. Set `select` to `false` to only confirm explicitly selected items.
-          ["<S-CR>"] = cmp.mapping.confirm({
-            behavior = cmp.ConfirmBehavior.Replace,
-            select = true,
-          }), -- Accept currently selected item. Set `select` to `false` to only confirm explicitly selected items.
+    config = function()
+      local luasnip = require("luasnip")
+      local cmp = require("cmp")
+      local lspkind = require("lspkind")
+      local tailwindcss_colorizer_cmp = require("tailwindcss-colorizer-cmp")
+
+      local kind_icons = {
+        Text = "",
+        Method = "",
+        Function = "",
+        Constructor = "",
+        Field = "",
+        Variable = "",
+        Class = "",
+        Interface = "",
+        Module = "",
+        Property = "",
+        Unit = "",
+        Value = "",
+        Enum = "",
+        Keyword = "",
+        Snippet = "",
+        Color = "",
+        File = "",
+        Reference = "",
+        Folder = "",
+        EnumMember = "",
+        Constant = "",
+        Struct = "",
+        Event = "",
+        Operator = "",
+        TypeParameter = "",
+      }
+
+      -- Configure completion for search commands
+      cmp.setup.cmdline({ "/", "?" }, {
+        mapping = cmp.mapping.preset.cmdline(),
+        sources = { { name = "buffer" } },
+      })
+
+      -- Configure completion for command mode
+      cmp.setup.cmdline(":", {
+        completion = { completeopt = "menu,menuone,noselect" },
+        mapping = cmp.mapping.preset.cmdline(),
+        sources = cmp.config.sources({ { name = "path" } }, { { name = "cmdline" } }),
+      })
+
+      -- Main completion configuration
+      cmp.setup({
+        completion = { completeopt = "menu,menuone" },
+
+        snippet = {
+          expand = function(args)
+            luasnip.lsp_expand(args.body)
+          end,
+        },
+
+        window = {
+          completion = cmp.config.window.bordered(),
+          documentation = cmp.config.window.bordered(),
+        },
+
+        mapping = cmp.mapping.preset.insert({
+          ["<C-n>"] = cmp.mapping.select_next_item(),
+          ["<C-p>"] = cmp.mapping.select_prev_item(),
+          ["<C-u>"] = cmp.mapping.scroll_docs(-4),
+          ["<C-d>"] = cmp.mapping.scroll_docs(4),
+          ["<C-Space>"] = cmp.mapping.complete(),
+          ["<C-e>"] = cmp.mapping.abort(),
+          ["<CR>"] = cmp.mapping.confirm({ select = true }),
           ["<C-CR>"] = function(fallback)
             cmp.abort()
             fallback()
           end,
+
+          ["<Tab>"] = cmp.mapping(function(fallback)
+            if cmp.visible() then
+              cmp.select_next_item()
+            elseif luasnip.expand_or_jumpable() then
+              luasnip.expand_or_jump()
+            else
+              fallback()
+            end
+          end, { "i", "s" }),
+
+          ["<S-Tab>"] = cmp.mapping(function(fallback)
+            if cmp.visible() then
+              cmp.select_prev_item()
+            elseif luasnip.jumpable(-1) then
+              luasnip.jump(-1)
+            else
+              fallback()
+            end
+          end, { "i", "s" }),
         }),
+
         sources = cmp.config.sources({
           { name = "nvim_lsp" },
-          { name = "path" },
-        }, {
+          { name = "luasnip" },
           { name = "buffer" },
+          { name = "path" },
+          { name = "spell" },
+          { name = "vim-dadbod-completion" },
         }),
+
         formatting = {
-          format = function(_, item)
-            local icons = require("lazyvim.config").icons.kinds
-            if icons[item.kind] then
-              item.kind = icons[item.kind] .. item.kind
-            end
-            return item
+          fields = { "kind", "abbr", "menu" } or nil,
+          format = function(entry, item)
+            -- Format using lspkind with tailwindcss-colorizer support
+            local fmt = lspkind.cmp_format({
+              mode = "symbol_text",
+              maxwidth = 50,
+              ellipsis_char = "...",
+              before = tailwindcss_colorizer_cmp.formatter,
+            })(entry, item)
+
+            -- Split the kind string to separate icon and text
+            local strings = vim.split(fmt.kind, "%s", { trimempty = true })
+
+            -- Format the kind and menu
+            fmt.kind = " " .. (kind_icons[strings[2]] or "")
+            fmt.menu = strings[2] ~= nil and (strings[2] or "") or ""
+
+            return fmt
           end,
         },
+
         experimental = {
-          ghost_text = {
-            hl_group = "CmpGhostText",
-          },
+          ghost_text = false,
         },
-        sorting = defaults.sorting,
-      }
-    end,
-    ---@param opts cmp.ConfigSchema | {auto_brackets?: string[]}
-    config = function(_, opts)
-      for _, source in ipairs(opts.sources) do
-        source.group_index = source.group_index or 1
-      end
-      local cmp = require("cmp")
-      local Kind = cmp.lsp.CompletionItemKind
-      cmp.setup(opts)
-      cmp.event:on("confirm_done", function(event)
-        if not vim.tbl_contains(opts.auto_brackets or {}, vim.bo.filetype) then
-          return
-        end
-        local entry = event.entry
-        local item = entry:get_completion_item()
-        if vim.tbl_contains({ Kind.Function, Kind.Method }, item.kind) then
-          local keys = vim.api.nvim_replace_termcodes("()<left>", false, false, true)
-          vim.api.nvim_feedkeys(keys, "i", true)
-        end
-      end)
+      })
     end,
   },
+
   {
-    "L3MON4D3/LuaSnip",
-    build = (not LazyVim.is_win())
-        and "echo 'NOTE: jsregexp is optional, so not a big deal if it fails to build'; make install_jsregexp"
-      or nil,
-    dependencies = {
-      {
-        "rafamadriz/friendly-snippets",
-        config = function()
-          require("luasnip.loaders.from_vscode").lazy_load()
-        end,
-      },
-      {
-        "nvim-cmp",
-        dependencies = {
-          "saadparwaiz1/cmp_luasnip",
-        },
-        opts = function(_, opts)
-          opts.snippet = {
-            expand = function(args)
-              require("luasnip").lsp_expand(args.body)
-            end,
-          }
-          table.insert(opts.sources, { name = "luasnip" })
-        end,
-      },
-    },
-    opts = {
-      history = true,
-      delete_check_events = "TextChanged",
-    },
-    --  stylua: ignore
-    keys = {
-      -- { "<tab>", false, mode = { "i", "s" } },
-      -- { "<s-tab>", false, mode = { "i", "s" } },
-      {
-        "<tab>",
-        function()
-          return require("luasnip").jumpable(1) and "<Plug>luasnip-jump-next" or "<tab>"
-        end,
-        expr = true, silent = true, mode = "i",
-      },
-      { "<tab>", function() require("luasnip").jump(1) end, mode = "s" },
-      { "<s-tab>", function() require("luasnip").jump(-1) end, mode = { "i", "s" } },
-    },
+    "hrsh7th/cmp-cmdline",
+    keys = { ":", "/", "?" },
   },
 }
